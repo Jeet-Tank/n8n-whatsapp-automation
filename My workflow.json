@@ -1,0 +1,4537 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=mimeType = 'application/vnd.google-apps.folder' and name = '{{ $json.path[0] }}'",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        784
+      ],
+      "id": "e4e11b1c-4586-42f5-b5b6-1569f8692e1f",
+      "name": "Search files and folders",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1136,
+        2416
+      ],
+      "id": "4665ee3c-cfc8-4373-b2b0-bbbb92b11372",
+      "name": "Download file",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "=",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "all"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        464,
+        -80
+      ],
+      "id": "bc86c301-8904-4508-9530-60161abc1784",
+      "name": "Google Drive: List Files in Folder",
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "={{\n  $json.values().length === 0\n    ? 'No files found in the folder.'\n    : 'Total ' + $input.all().length + ' items found:\\n' + \n      $input.all().map(i => '- ' + i.json.name).join('\\n')\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        688,
+        -80
+      ],
+      "id": "d3df7054-bccf-4336-83e8-12f3fd3b788a",
+      "name": "Twilio: Send List of Files",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "twilio-incoming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1728,
+        1528
+      ],
+      "id": "f6c4d185-f1e4-443d-b27a-79011184151a",
+      "name": "Webhook Trigger: Twilio Inbound",
+      "webhookId": "de131411-0223-459c-8c05-214b7c4e5238"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a8b62789-bdf0-458d-8b11-8e0337a73eb3",
+              "name": "body.Body",
+              "value": "={{ $json.body.Body.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "81f0f5e9-87f7-4d81-97f6-2ba9b5c80a33",
+              "name": "body.To",
+              "value": "={{ $json.body.To }}",
+              "type": "string"
+            },
+            {
+              "id": "bd0f3bf2-68a0-4a8b-bc38-b3f3306107c7",
+              "name": "body.From",
+              "value": "={{ $json.body.From }}",
+              "type": "string"
+            },
+            {
+              "id": "c66ff27e-18cb-45e2-85c5-8495519265d4",
+              "name": "User",
+              "value": "={{ $json.body.ProfileName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1504,
+        1528
+      ],
+      "id": "762cbb9b-9f91-4ce8-ab0d-530d3e3f00e6",
+      "name": "Set: Extract WhatsApp Fields",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get the Gemini output text\nconst rawText =$json.content.parts[0].text ;\n// Use a regular expression to find the content inside the ```json...``` block\nconst match = rawText.match(/```json\\n([\\s\\S]*?)\\n```/);\n\nlet jsonObject = {};\n\nif (match && match[1]) {\n  // If a match is found, parse the captured group (the content inside the block)\n  try {\n    jsonObject = JSON.parse(match[1]);\n  } catch (e) {\n    // Handle parsing errors if the output is not valid JSON\n    console.error('Failed to parse JSON:', e);\n    // You might want to throw an error here or set a fallback value\n  }\n} else {\n  // If no code block is found, assume the entire text is the JSON\n  try {\n    jsonObject = JSON.parse(rawText);\n  } catch (e) {\n    console.error('Failed to parse JSON directly:', e);\n    // Handle error\n  }\n}\n\n// Return the cleaned JSON object\nreturn { jsonObject };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        1648
+      ],
+      "id": "33750e1b-b59a-4a24-bcb6-32675a0a7b8f",
+      "name": "Code: Parse Command (Main Branch)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.jsonObject.intent.toUpperCase() }}",
+                    "rightValue": "LIST",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "cfa6510b-15db-42ee-ad46-17da7d9e62b1"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1c187e13-04f4-467e-a334-5e3d53f7fe5d",
+                    "leftValue": "={{ $json.jsonObject.intent.toUpperCase() }}",
+                    "rightValue": "DELETE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b38b6c06-d5da-4e05-8ebe-a10e0ab2b5f8",
+                    "leftValue": "={{ $json.jsonObject.intent.toUpperCase() }}",
+                    "rightValue": "MOVE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cc2c8577-ec3e-4400-bacc-10e547d99571",
+                    "leftValue": "={{ $json.jsonObject.intent.toUpperCase() }}",
+                    "rightValue": "SUMMARY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "996c1945-d02d-4337-af39-1adeefb09209",
+                    "leftValue": "={{ $json.jsonObject.intent.toUpperCase() }}",
+                    "rightValue": "HELP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -656,
+        1600
+      ],
+      "id": "e60a5ccd-68bb-4e14-a05a-5031580cb267",
+      "name": "Switch: Route Command",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "88032359-b74f-4340-a619-2fa865166663",
+              "leftValue": "={{ $json.isEmpty() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        -176
+      ],
+      "id": "c4e68793-2fa2-4b18-9395-400776fde757",
+      "name": "If: Folder Found?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f22665ef-9ea7-40c6-9f75-aec63c4b4ddd",
+              "leftValue": "={{ $json.folder_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "6ca80221-e02b-4773-b45a-b805677923e3",
+              "leftValue": "={{ $json.folder_name }}",
+              "rightValue": "/",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        -176
+      ],
+      "id": "c26b51fc-2410-4683-90b4-4ad77d7adfcb",
+      "name": "If: Check for Empty Path (List)",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=File named {{ $('Google Drive: Find Folder by Name (Delete)').item.json.name }} has been deleted successfully!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        912,
+        112
+      ],
+      "id": "a8ab5344-5356-4602-b43e-6477f1e5e7f4",
+      "name": "Twilio: Confirm File Deletion",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f22665ef-9ea7-40c6-9f75-aec63c4b4ddd",
+              "leftValue": "={{ $json.jsonObject.entities.file_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -432,
+        520
+      ],
+      "id": "1e952d44-0dd4-40ca-8fee-f57ae053243d",
+      "name": "If: Check for Empty Command (Delete)",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "python",
+        "pythonCode": "# Add a new field called 'myNewField' to the JSON of the item\n\nif \"folder_name\" in _json.jsonObject.entities:\n  path = _json.jsonObject.entities.folder_name\nelse:\n  path = \"/\"\nreturn {\"folder_name\":path}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        -176
+      ],
+      "id": "79bc638d-4e3a-4558-99ed-8686a2716be2",
+      "name": "Code: Parse Command (List)"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "'root' in parents",
+        "returnAll": true,
+        "filter": {
+          "driveId": {
+            "mode": "list",
+            "value": "My Drive"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        16,
+        -368
+      ],
+      "id": "243af3c1-912f-450a-8962-d070376372eb",
+      "name": "Google Drive: Search Root for Folder (List)",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "={{\n  $json.values().length === 0\n    ? 'No files found in the folder.'\n    : 'Total ' + $input.all().length + ' items found:\\n' + \n      $input.all().map(i => '- ' + i.json.name).join('\\n')\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -368
+      ],
+      "id": "3fdb1978-8dc4-4c00-b2f0-6ad4d2fb636b",
+      "name": "Twilio: Send List of Items",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=mimeType = 'application/vnd.google-apps.folder' and name = '{{ $json.folder_name }}'",
+        "returnAll": true,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        16,
+        -176
+      ],
+      "id": "dffb9daa-c058-448a-a14a-7ea362e75c22",
+      "name": "Google Drive: Find Folder by Name",
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No folder named '{{ $('Code: Parse Command (List)').item.json.folderPath }}' found, Please try again.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -272
+      ],
+      "id": "449244c1-56aa-4add-9e33-9d22413a6873",
+      "name": "Twilio: Send 'Folder Not Found' Error",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        688,
+        112
+      ],
+      "id": "b63095b9-bc03-44fd-9968-6fbf2ed52a4f",
+      "name": "Google Drive: Delete File (Root)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7e02ab51-d153-46aa-9f3d-fd1b939c521f",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        208
+      ],
+      "id": "58d7a57f-3e13-4984-a47e-e8e8a6790193",
+      "name": "If: File Exists? (Delete)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No File/Folder named {{ $('If: Path is Root Level (Delete)').item.json.path }} found in the directory.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        688,
+        304
+      ],
+      "id": "f3703588-d5fb-425f-9da9-eda262a684b2",
+      "name": "Twilio: Send 'File Not Found' Error (Delete)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1136,
+        496
+      ],
+      "id": "f4fb24bd-3a8f-437f-8934-f136b18a09a3",
+      "name": "Google Drive: Delete Nested File",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=File/Folder named {{ $('Google Drive: Find File to Delete').item.json.name }} has been deleted successfully!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        496
+      ],
+      "id": "3724f328-c526-4aad-9a5d-6bb6ef789c5f",
+      "name": "Twilio: Confirm Nested File Deletion",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No File/Folder named {{ $('If: Path is Root Level (Delete)').item.json.path[0] }} found in the directory.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        688,
+        880
+      ],
+      "id": "d4b4ed53-9bd6-4964-acfa-cb93b8de2c09",
+      "name": "Twilio: Send 'File Not Found' Error (Move)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f22665ef-9ea7-40c6-9f75-aec63c4b4ddd",
+              "leftValue": "={{ $json.jsonObject.entities.destination_folder }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "6ca80221-e02b-4773-b45a-b805677923e3",
+              "leftValue": "={{ $json.jsonObject.entities.file_name }}",
+              "rightValue": "/",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -432,
+        1768
+      ],
+      "id": "d4f228bd-2453-4da3-88de-8ea55e10a630",
+      "name": "If: Check for Empty Command (Move)",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "Invalid Syntax , please provide a source file and destination folder.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        1864
+      ],
+      "id": "bbc6701c-7fc4-407b-9089-9108e467a01c",
+      "name": "Twilio: Send Invalid Syntax Error (Move)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "path = _json.jsonObject.entities\nsource= []\nif \"source_folder\" in path:\n  source.append(path.source_folder)\n  source.append(path.file_name)\nelse:\n  source.append(path.file_name)\n\ndestination = path.destination_folder\n\n\nreturn {\n  \"source\":source,\n  \"destination\":destination,\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        1672
+      ],
+      "id": "8825e6cb-43c7-47b7-b715-c4390810ea98",
+      "name": "Python Code: Split Path (Move)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b0f96b7a-e7bd-4312-a40f-03e8f5518539",
+              "leftValue": "={{ $json.source }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "array",
+                "operation": "lengthEquals",
+                "rightType": "number"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        1672
+      ],
+      "id": "35eb3f5d-7af6-4cd8-b36e-23f5e526af54",
+      "name": "If: Path is Nested (Move)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $('Python Code: Split Path (Move)').item.json.source[0] }}' and mimeType = 'application/vnd.google-apps.folder' ",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        1360
+      ],
+      "id": "1ee1fbc4-84b8-4f52-b97b-8fa99aee2f55",
+      "name": "Search Source Folder (Move)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        1360
+      ],
+      "id": "b5b069c4-520a-4175-b6b8-a54f6da04880",
+      "name": "If Source Folder Exists (Move)"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No File/Folder named {{ $('If: Path is Nested (Move)').item.json.item0 }} found in the directory.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        688,
+        1552
+      ],
+      "id": "53c9f537-4822-4087-ad03-7dc531a75876",
+      "name": "Send Error: Source Folder Not Found (Nested Move)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $('If: Path is Nested (Move)').item.json.source[1]}}'",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $('Search Source Folder (Move)').item.json.id }}",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        688,
+        1168
+      ],
+      "id": "b66532ff-b932-4bab-8960-fbbccd4bdf51",
+      "name": "Search Source File (Nested Move)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        1168
+      ],
+      "id": "d6fb2d80-9344-40b6-b1fa-3f0909e48ee8",
+      "name": "If Source File Exists (Nested Move)"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No File/Folder named {{ $('If: Path is Nested (Move)').item.json.source[1]}} found in the directory.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        1360
+      ],
+      "id": "089665ea-f983-407a-9e49-94f7d343762d",
+      "name": "Send Error: Source File Not Found (Nested Move)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $('Python Code: Split Path (Move)').item.json.destination }}' and mimeType = 'application/vnd.google-apps.folder'",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1136,
+        1072
+      ],
+      "id": "6a55561d-c4e0-4e09-aad2-072d935ae279",
+      "name": "Search Destination Folder (Move)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('If Source File Exists (Nested Move)').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1584,
+        976
+      ],
+      "id": "6e433935-56e7-469c-8336-7f3fa51cfea5",
+      "name": "Move File to Destination",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        1072
+      ],
+      "id": "86ba9402-0b54-4fcc-b136-342ccfac565f",
+      "name": "If Destination Folder Exists (Move)"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No Folder named {{ $('Python Code: Split Path (Move)').item.json.destination }} found, Please check the destination folder.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        1168
+      ],
+      "id": "b74df9ee-c958-4f67-8948-c31d3d695f1c",
+      "name": "Send Error: Destination Folder Not Found (Move)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=The File named {{ $json.name}} has been moved to the target directory {{ $('Search Destination Folder (Move)').item.json.name }} Successfully!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        976
+      ],
+      "id": "e1a18290-8365-404d-98b6-8040530a74ba",
+      "name": "Send Success: File Moved",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name ='{{ $json.source[0] }}'",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        1936
+      ],
+      "id": "807281e5-e882-40a7-8a6b-4f9e46d7f95c",
+      "name": "Search Source File (Root Level Move)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        1936
+      ],
+      "id": "c1f4cadd-7c73-40c9-8e5a-5b4d38bd5f41",
+      "name": "If Source File Exists (Root Level Move)"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $('Python Code: Split Path (Move)').item.json.destination }}' and mimeType = 'application/vnd.google-apps.folder'",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        688,
+        1840
+      ],
+      "id": "f252f332-4ff2-4468-a20d-0dc10d45c1ad",
+      "name": "Search Destination Folder (Root Level Move)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        1840
+      ],
+      "id": "efdea7b0-c6f5-4ee4-a208-ef1df815cf3b",
+      "name": "If Destination Folder Exists (Root Level Move)"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No Folder named \"{{ $('Python Code: Split Path (Move)').item.json.destination }}\" found, Please check the destination folder.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        1936
+      ],
+      "id": "e6c97f40-986c-450c-8b41-bdb24f564602",
+      "name": "Send Error: Destination Folder Not Found (Root Level Move)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('If Source File Exists (Root Level Move)').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1136,
+        1744
+      ],
+      "id": "e75be21b-9c57-4f93-9ea8-e43517e8fd94",
+      "name": "Move File to Destination (Root Level)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=The File named \"{{ $json.name}}\" has been moved to the target directory \"{{ $('Python Code: Split Path (Move)').item.json.destination }}\" Successfully!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        1744
+      ],
+      "id": "d180bcf0-4737-4645-8df8-2cc7d942b27c",
+      "name": "Send Success: File Moved (Root Level)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No File/Folder named \"{{ $('If: Path is Nested (Move)').item.json.source[0] }}\" found in the directory.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        688,
+        2128
+      ],
+      "id": "f2065bb8-f100-4a09-9084-487112bf0830",
+      "name": "Send Error: Source File Not Found (Root Level Move)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No file named \"{{ $('If Path is Empty (Summary)').item.json.folderPath }}\" found.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        2608
+      ],
+      "id": "35f68719-25c0-4c73-a243-2aad787ced4c",
+      "name": " Send Error: File Not Found (Summary)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1bc7dda1-bc56-495b-b5c7-7c854cc58976"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c3d99d60-a684-409f-b3cb-c4373f071567",
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "text/plain",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "241eeb2d-ad85-4e12-b42b-37cd859318b1",
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1360,
+        2400
+      ],
+      "id": "4b0ee18b-02f6-4bcc-99d1-6e0a6c115c63",
+      "name": "Switch: File Type"
+    },
+    {
+      "parameters": {
+        "operation": "Extract Resources",
+        "docName": "={{ $json.name }}",
+        "extractionOptions": {
+          "extractText": true
+        },
+        "advancedOptions": {}
+      },
+      "type": "n8n-nodes-pdf4me.pdf4me",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        2128
+      ],
+      "id": "91e0dc83-5498-409d-8906-c25663efb0d1",
+      "name": "PDF4ME: Extract Text from PDF",
+      "executeOnce": true,
+      "alwaysOutputData": false,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        2128
+      ],
+      "id": "a3fbcb33-7454-40c0-b29e-a523d1b5bb39",
+      "name": "Extract Text from PDF"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.data;\n\nreturn{\n  \"text\": data.slice(14,-21)\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        2128
+      ],
+      "id": "14e71d04-836f-4384-8e5c-6f9fcad63395",
+      "name": "Code: Process Extracted Text"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=I am providing you a piece of text from a file , which you have to anaylze and tell me what it is about, and if possible summarize the content inside it while strictly maintaining the limit maximum of 1100 characters and trying to retain as much important detail as possible.\n\nthe text is as follows:\n{{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        2256,
+        2320
+      ],
+      "id": "a9d13be8-0a71-492f-9e0b-2e00352c4f1e",
+      "name": "Gemini: Summarize Text",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cff09957-178a-479e-b70e-9081a199d958",
+              "name": "content.parts[0].text",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2656,
+        2320
+      ],
+      "id": "1ba0e156-ac79-4c02-81b6-6f6c0e24e09c",
+      "name": "Set: Gemini Output"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "={{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        2320
+      ],
+      "id": "1d2f0573-11a7-4385-a68b-e4311a311078",
+      "name": "Send Summary to User",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-docx-converter.docxToText",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        2512
+      ],
+      "id": "6614af35-b406-4337-bd80-a410178485ba",
+      "name": "Extract Text from DOCX"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        2320
+      ],
+      "id": "59c14749-76d7-4f34-a655-86ec1b29879f",
+      "name": "Extract Text from TXT"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=👋 *Hey! I'm your Google Drive Assistant Bot*\n\nI can understand more natural language. You can now tell me what to do in your own words, and I'll do my best to figure out your request.\n\nHere are some examples of what I can do 👇\n\n📂 *LIST*\n   🔸 List the contents of a folder.\n   👉 _Examples:_\n      - `What's in my 'Projects' folder?`\n      - `Show me the files in 'Projects/2025'`\n\n📤 *MOVE*\n   🔸 Move a file to a new folder.\n   👉 _Examples:_\n      - `Can you move 'Q3_Report.pdf' to the 'Archive' folder?`\n      - `Move 'resume.docx' to my 'Applications' folder please.`\n\n📝 *SUMMARY*\n   🔸 Summarize the content of a text or PDF file.\n   👉 _Examples:_\n      - `Summarize the file 'meeting_notes.pdf'.`\n      - `Give me a summary of 'report.txt'.`\n\n❌ *DELETE*\n   🔸 Delete a specified file.\n   👉 _Examples:_\n      - `Delete 'old_draft.txt' for me.`\n      - `Can you remove the file 'temp_file.zip'?`\n\n🆘 *HELP*\n   🔸 Shows this help message again.\n   👉 _Example:_ `help`\n\n🛑 *Rules:*\n    • Folder paths allowed: `folder` or `folder/file`, not `folder/folder/file`\n    • File/folder names are *case-sensitive*\n---\n*Note: Try to be clear about the file names and folder names you want to use.*",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        2344
+      ],
+      "id": "e0111f64-8220-4742-be62-9d7c832acced",
+      "name": "Send Help Message",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{$json.folderPath}}' and mimeType != 'application/vnd.google-apps.folder'",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "=root",
+            "mode": "id"
+          }
+        },
+        "options": {
+          "fields": [
+            "mimeType",
+            "name",
+            "id"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        688,
+        2704
+      ],
+      "id": "76511052-7b8b-435a-bb76-b2ced45a262a",
+      "name": "Search File to Summarize",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        2512
+      ],
+      "id": "53d047a3-e45a-427d-bd43-78919b7cfbe4",
+      "name": "If File Exists (Summary)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f22665ef-9ea7-40c6-9f75-aec63c4b4ddd",
+              "leftValue": "={{ $json.jsonObject.entities.file_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -432,
+        2152
+      ],
+      "id": "83795809-4a4f-43d7-8287-5b79a4d48b6a",
+      "name": "If Path is Empty (Summary)",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "Invalid Syntax , please provide a source file and destination folder.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        2056
+      ],
+      "id": "24c9d19a-6f56-41e6-858b-aed8468019b7",
+      "name": "Send Error: Invalid Syntax (Summary)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "Invalid Syntax , please provide a file or folder name.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        16
+      ],
+      "id": "20c00e98-80ea-4027-bfda-682926a10392",
+      "name": "Twilio: Send Invalid Syntax Error (Delete)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "path = _json.jsonObject.entities\nsource= []\nif \"parent_folder\" in path:\n  source.append(path.parent_folder)\n  source.append(path.file_name)\nelse:\n  source.append(path.file_name)\n\nreturn {\"path\":source}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        616
+      ],
+      "id": "2fea16bc-92c4-41b1-964e-91bd6494302a",
+      "name": "Python Code: Split Path (Delete Command)1",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ad0a0b73-c687-470b-b8ef-2b175f467216",
+              "leftValue": "={{ $json.path.length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        616
+      ],
+      "id": "fb1b34bd-cba5-4e99-bc04-a5d06091aa4b",
+      "name": "If: Path is Root Level (Delete)"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{$json.path[0]}}'",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        208
+      ],
+      "id": "12104394-3b70-4e90-b4aa-99ffc90016a2",
+      "name": "Google Drive: Find Folder by Name (Delete)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        784
+      ],
+      "id": "670af0d6-072f-46ca-8ee7-6fa02703c1ed",
+      "name": "If: Folder Found? (Delete)"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $('If: Path is Root Level (Delete)').item.json.path[1] }}'",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        688,
+        592
+      ],
+      "id": "a01f76f7-21c2-4bd5-8ed5-6328f2d26bec",
+      "name": "Google Drive: Find File to Delete",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        592
+      ],
+      "id": "25325a10-b8c1-4e63-87c3-e51fbc8e52c3",
+      "name": "If: File Exists? (Delete)1"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No File/Folder named {{ $('If: Path is Root Level (Delete)').item.json.path[1] }} found in the directory.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        688
+      ],
+      "id": "fec279ba-54bb-4297-a448-358d92cc0510",
+      "name": "Twilio: Send 'Folder Not Found' Error (Delete)",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an AI assistant for managing Google Drive files. The user will provide a command. Your job is to classify the user's intent and extract any relevant entities.Respond with a single JSON object ONLY. Do not include any other text, explanations, or Markdown formatting.\n\nThe possible intents are: `move`, `delete`, `summary`, `list`, and `help`.\n\nExample:\nUser: \"Please move the document named 'Q3_Report.pdf' to the '2024 Archives' folder.\"\nResponse:\n{\n  \"intent\": \"move\",\n  \"entities\": {\n    \"file_name\": \"Q3_Report.pdf\",\n    \"destination_folder\": \"2024 Archives\"\n  }\n}\n\nExample:\nUser: \"Can you delete the file 'old_memo.txt'?\"\nResponse:\n{\n  \"intent\": \"delete\",\n  \"entities\": {\n    \"file_name\": \"old_memo.txt\"\n  }\n}\n\nNow, process the following user command.\n\nUser: \"{{ $json.body.Body }}\"\nResponse:"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        1648
+      ],
+      "id": "5938fa68-bf2a-48fa-9123-abbb9472d442",
+      "name": "Message a model",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "path = _json.jsonObject.entities\nsource= []\nif \"folder_name\" in path:\n  source.append(path.folder_name)\n  source.append(path.file_name)\nelse:\n  source.append(path.file_name)\n\n\n\nreturn {\n  \"source\":source,\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        2512
+      ],
+      "id": "84bc4612-070f-4ade-821a-c6f1cc9f6923",
+      "name": "Python Code: Split Path (Summary)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Set: Extract WhatsApp Fields').item.json.body.To.slice(9) }}",
+        "to": "={{ $('Set: Extract WhatsApp Fields').item.json.body.From.slice(9) }}",
+        "toWhatsapp": true,
+        "message": "=No File/Folder named {{ $('If: Path is Nested (Move)').item.json.item0 }} found in the directory.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        688,
+        2512
+      ],
+      "id": "2b1abda3-893d-492f-8acc-0cbaf4eb9fb1",
+      "name": "Send Error: Source Folder Not Found (Nested Move)1",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b0f96b7a-e7bd-4312-a40f-03e8f5518539",
+              "leftValue": "={{ $json.source }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "array",
+                "operation": "lengthEquals",
+                "rightType": "number"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        2512
+      ],
+      "id": "835fb195-c289-41d9-96d6-d6ba06b37dd0",
+      "name": "If: Path is Nested (Summary)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $json.source[0] }}' and mimeType = 'application/vnd.google-apps.folder' ",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        2416
+      ],
+      "id": "e3a5f565-0a55-4cba-a1fd-1123d896d7dc",
+      "name": "Search Source Folder (Summary)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f12b922a-03b0-41a5-a3b4-92fd19899a72",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        2416
+      ],
+      "id": "5767ebfe-fd44-4aae-a023-fddef46be145",
+      "name": "If Source Folder Exists (Summary)"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $('If: Path is Nested (Summary)').item.json.source[1] }}'",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          }
+        },
+        "options": {
+          "fields": [
+            "id",
+            "mimeType",
+            "name"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        688,
+        2320
+      ],
+      "id": "747409bc-8f71-4e0d-867d-acb3822470ad",
+      "name": "Search Source File (Nested Summary)",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "title": "Audit-sheet",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "Logs"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -656,
+        1408
+      ],
+      "id": "60ac8213-c04e-44af-a880-79386c087bd8",
+      "name": "Create spreadsheet",
+      "executeOnce": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = 'Audit-sheet' and mimeType = 'application/vnd.google-apps.spreadsheet'",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1192,
+        1408
+      ],
+      "id": "dcf59bf6-f53c-41cd-995b-f69f5698a97e",
+      "name": "Search files and folders1",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "252afee2-738a-435c-a546-e4803795eacb",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        1408
+      ],
+      "id": "221db7c9-47a7-4da2-8bda-b636089c2079",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "body_User": "={{ $('Set: Extract WhatsApp Fields').item.json.body.User }}",
+            "jsonObject_intent": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}",
+            "jsonObject_entities_file_name": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}"
+          },
+          "matchingColumns": [
+            "body_User",
+            "jsonObject_intent",
+            "jsonObject_entities_file_name"
+          ],
+          "schema": [
+            {
+              "id": "body_User",
+              "displayName": "body_User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "jsonObject_intent",
+              "displayName": "jsonObject_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "jsonObject_entities_file_name",
+              "displayName": "jsonObject_entities_file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1728,
+        -592
+      ],
+      "name": "Call Log into sheet",
+      "id": "d55e42b9-0340-4e41-a9d1-d8b1c1535a83",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Success",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1584,
+        1744
+      ],
+      "id": "e93e8962-88de-4527-b646-631a7e6b9314",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1808,
+        1744
+      ],
+      "id": "bc134d58-e0d5-4252-ad4b-f63c39cb66f9",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Success",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2032,
+        976
+      ],
+      "id": "813965cc-596d-492e-9a72-e1b66a7e3daf",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2344,
+        976
+      ],
+      "id": "fe58862a-04c1-4ddf-9110-4bd4d17b6045",
+      "name": "Execute Workflow1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Success",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1584,
+        496
+      ],
+      "id": "fe79259b-e37d-4206-8624-d44a65f0f8b5",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1808,
+        496
+      ],
+      "id": "6d7baf11-ac0c-4f09-a8c9-bb90f7148f93",
+      "name": "Execute Workflow2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Success",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        112
+      ],
+      "id": "91fbefdc-96e4-4dc9-af16-3d5a49e69b12",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1360,
+        112
+      ],
+      "id": "d5dfbbb2-8cb6-4402-af51-812e2f561cbf",
+      "name": "Execute Workflow3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        304
+      ],
+      "id": "ed0b8146-382b-4ccd-a112-3cf413dc435c",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        304
+      ],
+      "id": "85f98031-06b1-4fb5-b859-e9489368a23d",
+      "name": "Execute Workflow4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        688
+      ],
+      "id": "b4230287-b529-4cf7-a8c5-72219b5382e4",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1584,
+        688
+      ],
+      "id": "c4325e61-d3ae-4fd3-84c6-e7dd7778c758",
+      "name": "Execute Workflow5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        880
+      ],
+      "id": "4e8b8f18-8cde-424d-8f79-955a4ae7e34f",
+      "name": "Edit Fields6"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        880
+      ],
+      "id": "a68f09f0-ab17-4b96-a53f-f9cac71669a2",
+      "name": "Execute Workflow6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        1552
+      ],
+      "id": "50a562f6-a725-41da-8b8b-32a4942d9caf",
+      "name": "Edit Fields7"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        1552
+      ],
+      "id": "b37f298b-4337-4e1c-9cc5-09bd9d92721f",
+      "name": "Execute Workflow7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        1360
+      ],
+      "id": "824c7770-8453-4f78-a4c0-d21ae71f31fe",
+      "name": "Edit Fields8"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1584,
+        1360
+      ],
+      "id": "2f994092-6475-4b73-aa26-fe817dc86d6f",
+      "name": "Execute Workflow8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1808,
+        1168
+      ],
+      "id": "ecc89300-334a-4e50-af6f-ca2107ebd38a",
+      "name": "Edit Fields9"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2032,
+        1168
+      ],
+      "id": "3cc96c76-a6a7-4e83-ab6d-997c9d0e0d79",
+      "name": "Execute Workflow9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        2128
+      ],
+      "id": "16105e73-97bd-4972-a567-4c12fbeb6df1",
+      "name": "Edit Fields10"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        2128
+      ],
+      "id": "82428624-3706-40d2-bc29-e2967f82c48d",
+      "name": "Execute Workflow10"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1753c0ab-1643-4ff9-a24b-d5bb2c8df440",
+              "name": "message",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "fef29f77-ec3a-4bcd-908b-b819bd006325",
+              "name": "state",
+              "value": "Failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        1936
+      ],
+      "id": "1ce94110-f94e-4095-b315-2582b21ea7d2",
+      "name": "Edit Fields11"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G7095Sjz7y8S4SJt",
+          "mode": "list",
+          "cachedResultName": "Log into sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.state }}",
+            "User": "={{ $('Set: Extract WhatsApp Fields').item.json.User }}",
+            "File": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.entities.file_name }}",
+            "Command": "={{ $('Code: Parse Command (Main Branch)').item.json.jsonObject.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1584,
+        1936
+      ],
+      "id": "ac2424d3-f0e5-43c1-9742-93a6d3849caa",
+      "name": "Execute Workflow11"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "If: Folder Found? (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Switch: File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: List Files in Folder": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Send List of Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger: Twilio Inbound": {
+      "main": [
+        [
+          {
+            "node": "Set: Extract WhatsApp Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Extract WhatsApp Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search files and folders1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Command (Main Branch)": {
+      "main": [
+        [
+          {
+            "node": "Switch: Route Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Route Command": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Command (List)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If: Check for Empty Command (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If: Check for Empty Command (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If Path is Empty (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Help Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Folder Found?": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Send 'Folder Not Found' Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive: List Files in Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Check for Empty Path (List)": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Search Root for Folder (List)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive: Find Folder by Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Check for Empty Command (Delete)": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Send Invalid Syntax Error (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Python Code: Split Path (Delete Command)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Command (List)": {
+      "main": [
+        [
+          {
+            "node": "If: Check for Empty Path (List)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Search Root for Folder (List)": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Send List of Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Find Folder by Name": {
+      "main": [
+        [
+          {
+            "node": "If: Folder Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Delete File (Root)": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Confirm File Deletion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: File Exists? (Delete)": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Delete File (Root)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twilio: Send 'File Not Found' Error (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Delete Nested File": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Confirm Nested File Deletion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Check for Empty Command (Move)": {
+      "main": [
+        [
+          {
+            "node": "Python Code: Split Path (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twilio: Send Invalid Syntax Error (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Python Code: Split Path (Move)": {
+      "main": [
+        [
+          {
+            "node": "If: Path is Nested (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Path is Nested (Move)": {
+      "main": [
+        [
+          {
+            "node": "Search Source Folder (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search Source File (Root Level Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Source Folder (Move)": {
+      "main": [
+        [
+          {
+            "node": "If Source Folder Exists (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Source Folder Exists (Move)": {
+      "main": [
+        [
+          {
+            "node": "Search Source File (Nested Move)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error: Source Folder Not Found (Nested Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Source File (Nested Move)": {
+      "main": [
+        [
+          {
+            "node": "If Source File Exists (Nested Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Source File Exists (Nested Move)": {
+      "main": [
+        [
+          {
+            "node": "Search Destination Folder (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error: Source File Not Found (Nested Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Destination Folder (Move)": {
+      "main": [
+        [
+          {
+            "node": "If Destination Folder Exists (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move File to Destination": {
+      "main": [
+        [
+          {
+            "node": "Send Success: File Moved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Destination Folder Exists (Move)": {
+      "main": [
+        [
+          {
+            "node": "Move File to Destination",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error: Destination Folder Not Found (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Source File (Root Level Move)": {
+      "main": [
+        [
+          {
+            "node": "If Source File Exists (Root Level Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Source File Exists (Root Level Move)": {
+      "main": [
+        [
+          {
+            "node": "Search Destination Folder (Root Level Move)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error: Source File Not Found (Root Level Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Destination Folder (Root Level Move)": {
+      "main": [
+        [
+          {
+            "node": "If Destination Folder Exists (Root Level Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Destination Folder Exists (Root Level Move)": {
+      "main": [
+        [
+          {
+            "node": "Move File to Destination (Root Level)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error: Destination Folder Not Found (Root Level Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move File to Destination (Root Level)": {
+      "main": [
+        [
+          {
+            "node": "Send Success: File Moved (Root Level)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: File Type": {
+      "main": [
+        [
+          {
+            "node": "PDF4ME: Extract Text from PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Text from TXT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Text from DOCX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF4ME: Extract Text from PDF": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from PDF": {
+      "main": [
+        [
+          {
+            "node": "Code: Process Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Process Extracted Text": {
+      "main": [
+        [
+          {
+            "node": "Gemini: Summarize Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: Summarize Text": {
+      "main": [
+        [
+          {
+            "node": "Set: Gemini Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Gemini Output": {
+      "main": [
+        [
+          {
+            "node": "Send Summary to User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from DOCX": {
+      "main": [
+        [
+          {
+            "node": "Gemini: Summarize Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from TXT": {
+      "main": [
+        [
+          {
+            "node": "Gemini: Summarize Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search File to Summarize": {
+      "main": [
+        [
+          {
+            "node": "If File Exists (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If File Exists (Summary)": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": " Send Error: File Not Found (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Path is Empty (Summary)": {
+      "main": [
+        [
+          {
+            "node": "Send Error: Invalid Syntax (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Python Code: Split Path (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Python Code: Split Path (Delete Command)1": {
+      "main": [
+        [
+          {
+            "node": "If: Path is Root Level (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Path is Root Level (Delete)": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Find Folder by Name (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Find Folder by Name (Delete)": {
+      "main": [
+        [
+          {
+            "node": "If: File Exists? (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Folder Found? (Delete)": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Find File to Delete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twilio: Send 'File Not Found' Error (Move)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive: Find File to Delete": {
+      "main": [
+        [
+          {
+            "node": "If: File Exists? (Delete)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: File Exists? (Delete)1": {
+      "main": [
+        [
+          {
+            "node": "Google Drive: Delete Nested File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twilio: Send 'Folder Not Found' Error (Delete)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Command (Main Branch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Python Code: Split Path (Summary)": {
+      "main": [
+        [
+          {
+            "node": "If: Path is Nested (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If: Path is Nested (Summary)": {
+      "main": [
+        [
+          {
+            "node": "Search Source Folder (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search File to Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Source Folder (Summary)": {
+      "main": [
+        [
+          {
+            "node": "If Source Folder Exists (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Source Folder Exists (Summary)": {
+      "main": [
+        [
+          {
+            "node": "Search Source File (Nested Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error: Source Folder Not Found (Nested Move)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Source File (Nested Summary)": {
+      "main": [
+        [
+          {
+            "node": "If File Exists (Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error: Source Folder Not Found (Nested Move)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error: Destination Folder Not Found (Move)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Success: File Moved": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio: Send 'File Not Found' Error (Move)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio: Send 'Folder Not Found' Error (Delete)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio: Confirm Nested File Deletion": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error: Source File Not Found (Nested Move)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio: Send 'File Not Found' Error (Delete)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio: Confirm File Deletion": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Success: File Moved (Root Level)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error: Destination Folder Not Found (Root Level Move)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error: Source File Not Found (Root Level Move)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields6": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields7": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields8": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields9": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields10": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields11": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "Anuyd3g4TnU3Zsyj"
+  },
+  "versionId": "4ea5a99c-e4b2-4480-aa4b-e1d7b236427c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d21d68b14d00936b5f38f58c1d6a39d6f28b32fe7741b1d0d3006c2e1a068e8f"
+  },
+  "id": "Anuyd3g4TnU3Zsyj",
+  "tags": []
+}

@@ -1,0 +1,254 @@
+{
+  "name": "Log into sheet",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17-K_RLzyI9myJp44FsiYYmtHhUlU8TOZxASKOLkY-qM",
+          "mode": "list",
+          "cachedResultName": "Audit-sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17-K_RLzyI9myJp44FsiYYmtHhUlU8TOZxASKOLkY-qM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1538487825,
+          "mode": "list",
+          "cachedResultName": "Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17-K_RLzyI9myJp44FsiYYmtHhUlU8TOZxASKOLkY-qM/edit#gid=1538487825"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Command",
+              "displayName": "Command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "File/Folder",
+              "displayName": "File/Folder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Details",
+              "displayName": "Details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "File",
+              "displayName": "File",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3248,
+        368
+      ],
+      "id": "0060ee76-4008-43ac-b53c-ccc920072217",
+      "name": "Append row in sheet",
+      "executeOnce": true,
+      "alwaysOutputData": false,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7cbb34ee-c459-4e5f-b123-d85d48678e78",
+              "name": "Timestamp",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "c054d46b-b3fb-4654-a9e9-110a067b2ca5",
+              "name": "User",
+              "value": "={{ $json.User }}",
+              "type": "string"
+            },
+            {
+              "id": "008f4701-8452-45e7-87cc-7d795660b687",
+              "name": "Command",
+              "value": "={{ $json.Command }}",
+              "type": "string"
+            },
+            {
+              "id": "58eefaa8-4a58-49c0-97df-7e8429624555",
+              "name": "File/Folder",
+              "value": "={{ $json.File }}",
+              "type": "string"
+            },
+            {
+              "id": "0f163e8e-6f5f-4c5c-b38b-061f6210533f",
+              "name": "Status",
+              "value": "={{$json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "6a022447-6457-48e5-91a5-6709a8521d63",
+              "name": "=Details",
+              "value": "={{$json.message}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2976,
+        368
+      ],
+      "id": "a4302a39-3058-4955-bc54-eafc1ecabb23",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "message"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "User"
+            },
+            {
+              "name": "Command"
+            },
+            {
+              "name": "File"
+            }
+          ]
+        }
+      },
+      "id": "81f8fbb1-507d-4085-8ebf-2f858e958a6f",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        2688,
+        368
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "25f64bbf-03fc-401d-b0b8-50d48f12845a",
+  "meta": {
+    "instanceId": "d21d68b14d00936b5f38f58c1d6a39d6f28b32fe7741b1d0d3006c2e1a068e8f"
+  },
+  "id": "G7095Sjz7y8S4SJt",
+  "tags": []
+}
