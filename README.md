@@ -72,7 +72,7 @@ Gemini API is used in two ways:
 
 ## 📄 Logging System
 
-Every action (command) is logged into a **Google Sheet** with:
+Move and Delete action (command) is logged into a **Google Sheet** with:
 
 - Timestamp
 - Original WhatsApp message
@@ -82,8 +82,6 @@ Every action (command) is logged into a **Google Sheet** with:
 
 This requires:
 - Google Sheets API to be enabled in your project
-- A Google Sheet with appropriate column headers
-- Configured “Append Row” node in your n8n workflow
 
 ---
 
@@ -96,7 +94,7 @@ This requires:
    - Extracts content from the file
    - Sends to Gemini for summarization
    - Replies with the summary
-   - Logs activity to Google Sheet
+
 
 ---
 
