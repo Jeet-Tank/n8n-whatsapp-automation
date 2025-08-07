@@ -87,7 +87,7 @@ This requires:
 
 ## ✅ Example Flow
 
-1. User sends: `summarize my resume`
+1. User sends: `summarize filename`
 2. System:
    - Extracts intent using Gemini
    - Matches to `summary` command
