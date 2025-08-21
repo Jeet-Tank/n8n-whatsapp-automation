@@ -7,16 +7,12 @@
         "documentId": {
           "__rl": true,
           "value": "17-K_RLzyI9myJp44FsiYYmtHhUlU8TOZxASKOLkY-qM",
-          "mode": "list",
-          "cachedResultName": "Audit-sheet",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17-K_RLzyI9myJp44FsiYYmtHhUlU8TOZxASKOLkY-qM/edit?usp=drivesdk"
+          "mode": "list"
         },
         "sheetName": {
           "__rl": true,
           "value": 1538487825,
-          "mode": "list",
-          "cachedResultName": "Logs",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17-K_RLzyI9myJp44FsiYYmtHhUlU8TOZxASKOLkY-qM/edit#gid=1538487825"
+          "mode": "list"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
